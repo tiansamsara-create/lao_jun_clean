@@ -173,8 +173,15 @@ ipcMain.handle('clean:start', async (event, ids) => {
       if (!event.sender.isDestroyed()) event.sender.send('clean:progress', progress);
     }
   });
-  const auditPath = appendAudit({ action: 'clean', selectedIds: uniqueIds, report });
-  return { ...report, auditPath, drive: await getDriveInfo() };
+  let audit = {};
+  try {
+    audit.auditPath = appendAudit({ action: 'clean', selectedIds: uniqueIds, report });
+  } catch (error) {
+    // Deletion already finished. Audit failure must not discard its report or
+    // cause the caller to retry cleanup as though no files were removed.
+    audit = { auditWarning: `日志保存失败：${error.message}（本次清理记录未写入）` };
+  }
+  return { ...report, ...audit, drive: await getDriveInfo() };
   } finally { cleanToken = null; }
 });
 

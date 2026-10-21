@@ -390,6 +390,9 @@ async function runClean() {
     els.resultMessage.textContent = report.cancelled ? '已停止安排新的删除任务。下方显示停止前已完成的清理。' : report.errors.length
       ? `清理已完成。有 ${report.skippedFiles} 个正在使用或无权限的文件被安全跳过。`
       : '所选缓存已清理完成。软件下次启动时可能会重建少量缓存。';
+    if (report.auditWarning) {
+      els.resultMessage.textContent += ` 清理结果已保留。${report.auditWarning}`;
+    }
     els.resultModal.classList.remove('hidden');
     state.selected.clear();
     // Apply measured deletions immediately; a full rescan of 150k files is optional.
