@@ -165,13 +165,18 @@ async function scanAll({ onProgress = () => {}, cancelToken = { cancelled: false
   const rules = await getRules();
   const results = [];
   let cursor = 0;
+  let completed = 0;
   const worker = async () => {
     while (!cancelToken.cancelled) {
       const index = cursor++;
       if (index >= rules.length) return;
       const result = await scanRule(rules[index], cancelToken);
+      // Cancellation may have interrupted measurement; do not publish partial
+      // rules or late progress. Result slots still follow the original rule order.
+      if (cancelToken.cancelled) return;
       results[index] = result;
-      onProgress({ current: index + 1, total: rules.length, app: result.app });
+      completed += 1;
+      onProgress({ current: completed, total: rules.length, app: result.app });
     }
   };
   await Promise.all(Array.from({ length: Math.min(4, rules.length) }, worker));
