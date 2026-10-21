@@ -71,6 +71,7 @@
         selected.clear();
         ui('diskStatus').textContent = `已移入回收站 ${response.removed.length} 个文件，失败 ${response.errors.length} 个。回收站仍占用磁盘；目录统计保留扫描时数值。`;
         if (response.errors.length) ui('diskStatus').textContent += ` ${response.errors.slice(0, 3).map(e => `${e.path}：${e.message}`).join('；')}`;
+        if (response.auditWarning) ui('diskStatus').textContent += ` 操作结果已保留。${response.auditWarning}`;
       }
     } catch (error) { showToast(error.message); }
     finally { setBusy(false); renderFiles(); }

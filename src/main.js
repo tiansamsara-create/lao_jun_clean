@@ -63,7 +63,12 @@ ipcMain.handle('disk:trash', async (_event, ids) => {
       } catch (e) { report.errors.push({ path: entry.path, message: e.message }); }
     }
     diskResult.files = diskResult.files.filter(f => !report.removed.includes(f.id));
-    appendAudit({ action: 'large-files-trash-result', report });
+    try {
+      appendAudit({ action: 'large-files-trash-result', report });
+    } catch (error) {
+      // Files have already moved: preserve the actual outcome, without retrying.
+      report.auditWarning = `日志保存失败：${error.message}（本次回收站操作结果日志未写入）`;
+    }
     return report;
   } finally { trashBusy = false; }
 });
