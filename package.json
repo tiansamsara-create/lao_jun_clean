@@ -1,0 +1,47 @@
+{
+  "name": "qingpan",
+  "version": "0.3.0",
+  "description": "安全、透明、可选择的 Windows C 盘清理工具",
+  "main": "src/main.js",
+  "author": "兲samsara；chatgpt",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test tests/*.test.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^38.2.2",
+    "electron-builder": "^26.0.12",
+    "png-to-ico": "^3.0.2"
+  },
+  "build": {
+    "appId": "cn.qingpan.cleaner",
+    "productName": "老君清",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "LaoJunQing-${version}-portable.${ext}"
+    },
+    "portable": {
+      "artifactName": "LaoJunQing-${version}-portable.${ext}"
+    }
+  }
+}

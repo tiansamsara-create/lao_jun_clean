@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <title>老君清</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="titlebar">
+    <div class="brand-mark" aria-hidden="true">
+      <img src="icon.png" alt="">
+    </div>
+    <span>老君清</span>
+    <span class="title-tag">作者：兲samsara；chatgpt · v0.3.0</span>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="side-top">
+        <div class="side-eyebrow">智能清理</div>
+        <h1>给 C 盘<br>松一口气</h1>
+        <p>看清楚，再删除。只扫描可重建的缓存和临时文件。</p>
+      </div>
+
+      <nav class="mode-nav" aria-label="主要功能">
+        <button class="mode-item active" data-view="cleaner"><span>✦</span><strong>垃圾清理</strong></button>
+        <button class="mode-item" data-view="software"><span>▣</span><strong>软件管理</strong><em>NEW</em></button>
+        <button class="mode-item" data-view="disk"><span>◉</span><strong>磁盘大文件</strong></button>
+        <button class="mode-item" data-view="system"><span>⬡</span><strong>系统空间</strong></button>
+      </nav>
+      <div class="side-label" id="categoryLabel">清理分类</div>
+
+      <nav class="nav-list" id="categoryNav" aria-label="清理分类">
+        <button class="nav-item active" data-category="全部">
+          <span class="nav-icon">⌂</span><span>全部项目</span><b id="allCount">0</b>
+        </button>
+      </nav>
+
+      <div class="privacy-card">
+        <div class="privacy-icon">✓</div>
+        <div><strong>完全本地</strong><span>扫描结果不会离开电脑</span></div>
+      </div>
+      <button class="text-button" id="openAudit">查看清理记录</button>
+    </aside>
+
+    <main class="main-content">
+      <div id="cleanerView">
+      <section class="overview-card">
+        <div class="overview-copy">
+          <div class="status-pill"><span></span><b id="machineName">这台电脑</b> · <span id="lastScan">尚未扫描</span></div>
+          <h2 id="heroTitle">先扫描，再决定清理什么</h2>
+          <p id="heroSub">不会扫描照片、文档和下载内容，也不会删除浏览器密码、Cookie 或聊天记录。</p>
+          <div class="hero-actions">
+            <button class="primary-button" id="scanButton">
+              <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 5v6h-6"/></svg>
+              <span>开始扫描</span>
+            </button>
+            <span class="scan-hint" id="scanHint">通常只需几十秒</span>
+          </div>
+        </div>
+        <div class="drive-visual">
+          <div class="ring" id="driveRing">
+            <div class="ring-inner">
+              <span id="driveLetter">C:</span>
+              <strong id="driveFree">—</strong>
+              <small>可用空间</small>
+            </div>
+          </div>
+          <div class="drive-caption"><span><i class="used-dot"></i>已使用 <b id="driveUsed">—</b></span><span>共 <b id="driveTotal">—</b></span></div>
+        </div>
+      </section>
+
+      <section class="results-section">
+        <header class="results-header">
+          <div>
+            <h3>可清理项目 <span id="resultCount">0</span></h3>
+            <p id="resultsSummary">扫描后，检测到的软件会显示在这里</p>
+          </div>
+          <div class="toolbar">
+            <label class="search-box">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+              <input id="searchInput" type="search" placeholder="搜索软件或清理项" autocomplete="off">
+            </label>
+            <button class="filter-button" id="selectSafe">选择安全项</button>
+          </div>
+        </header>
+
+        <div class="progress-wrap hidden" id="progressWrap">
+          <div class="progress-track"><div id="progressBar"></div></div>
+          <span id="progressText">准备扫描…</span>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <div class="radar">
+            <span></span><span></span><i></i>
+          </div>
+          <h4>等待第一次扫描</h4>
+          <p>会按软件分类显示体积、文件数、风险提示和具体位置。</p>
+        </div>
+
+        <div class="app-list hidden" id="appList"></div>
+      </section>
+      </div>
+
+      <div class="software-view hidden" id="softwareView">
+        <section class="software-hero">
+          <div>
+            <div class="software-kicker">软件体检 · 含 Microsoft Store 应用</div>
+            <h2>看看空间都被哪些软件占了</h2>
+            <p>选择一个磁盘，测量软件安装目录。应用数据和游戏库可能位于其他位置，可在“磁盘大文件”中查看目录占用。</p>
+            <select class="sort-select" id="softwareDrive" aria-label="软件所在磁盘"></select>
+            <button class="primary-button" id="scanAppsButton"><span>扫描已安装软件</span></button>
+          </div>
+          <div class="software-summary">
+            <span>已识别软件</span><strong id="softwareCount">—</strong>
+            <i></i>
+            <span>统计占用</span><strong id="softwareTotal">—</strong>
+          </div>
+        </section>
+
+        <section class="software-section">
+          <header class="results-header">
+            <div><h3>已安装软件 <span id="softwareResultCount">0</span></h3><p id="softwareSummaryText">按大小排序，先找出最值得处理的软件</p></div>
+            <div class="toolbar">
+              <label class="search-box">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+                <input id="softwareSearch" type="search" placeholder="搜索软件或发布者" autocomplete="off">
+              </label>
+              <select class="sort-select" id="softwareSort" aria-label="软件排序">
+                <option value="size">按占用排序</option>
+                <option value="name">按名称排序</option>
+                <option value="publisher">按发布者排序</option>
+              </select>
+            </div>
+          </header>
+
+          <div class="progress-wrap hidden" id="appsProgressWrap">
+            <div class="progress-track"><div id="appsProgressBar"></div></div>
+            <span id="appsProgressText">正在读取软件列表…</span>
+          </div>
+
+          <div class="empty-state software-empty" id="softwareEmpty">
+            <div class="software-empty-icon">▣</div>
+            <h4>还没有扫描软件</h4>
+            <p>扫描时间取决于安装目录大小，通常需要十几秒到几分钟。</p>
+          </div>
+
+          <div class="software-table hidden" id="softwareTable">
+            <div class="software-row software-head-row">
+              <span>软件</span><span>发布者 / 版本</span><span>安装位置</span><span>占用</span><span>操作</span>
+            </div>
+            <div id="softwareRows"></div>
+          </div>
+        </section>
+      </div>
+      <div id="diskView" class="hidden">
+        <section class="software-hero disk-hero">
+          <div><div class="software-kicker">单盘扫描 · 文件用途说明</div><h2>空间用在哪，一眼看清</h2>
+            <p>统计整个磁盘的目录占用，再列出最大的文件。大小不代表可以删除；每项都有用途说明和处理建议。</p>
+            <div class="disk-controls">
+              <select id="diskDrive" class="sort-select" aria-label="选择磁盘"></select>
+              <select id="diskThreshold" class="sort-select" aria-label="大文件阈值"><option value="100">大于 100 MB</option><option value="500">大于 500 MB</option><option value="1024">大于 1 GB</option></select>
+              <button id="diskScan" class="primary-button">扫描此磁盘</button><button id="diskStop" class="secondary-button hidden">停止扫描</button>
+            </div>
+          </div>
+        </section>
+        <p id="diskStatus" class="disk-note" aria-live="polite">请选择一个磁盘。首次全盘扫描可能需要几分钟，可随时停止并查看部分结果。</p>
+        <div id="diskStats" class="disk-stats"></div>
+        <div id="diskOverview" class="disk-overview"></div>
+        <details id="diskDirectoryBox" class="disk-directory hidden"><summary>目录占用排行（包含小文件；父子目录有重叠，请勿相加）</summary><div id="diskDirectories"></div></details>
+        <div class="results-header disk-results-head"><div><h3>大文件清单</h3><p id="diskCount">扫描后按体积从大到小显示</p></div><input id="diskSearch" class="sort-select" type="search" placeholder="搜索路径、类型或软件" aria-label="搜索文件"></div>
+        <div id="diskFiles" class="disk-files"></div>
+        <div class="disk-bottom"><span id="diskSelection">没有选择文件</span><button id="diskTrash" class="secondary-button" disabled>所选文件移入回收站</button><button id="diskMore" class="secondary-button hidden">显示更多</button></div>
+        <p class="disk-note">回收站仍占用原磁盘空间，检查后清空回收站才能释放。用途说明来自本地规则，不读取文件内容；未可靠识别的软件文件只提供定位。</p>
+      </div>
+      <div id="systemView" class="hidden">
+        <section class="software-hero"><div><div class="software-kicker">系统空间 · 安全维护</div><h2>C 盘不只有“软件”和“大文件”</h2><p>AppData 的小文件、商店应用、更新组件和系统保留空间，都可能占用很多。先测量，再使用 Windows 提供的维护功能。</p><button id="systemScan" class="primary-button">分析系统盘占用</button></div></section>
+        <div id="systemSummary" class="disk-note">点击分析会在“磁盘大文件”页面扫描系统盘。已有扫描结果会保留在该页面。</div>
+        <div class="system-cards">
+          <article><h3>推荐：Windows 磁盘清理</h3><p>查看更新清理、临时安装文件和旧系统。进入后选择“清理系统文件”，逐项检查。删除旧系统会失去回退能力。</p><button class="primary-button" data-system-action="cleanmgr">打开磁盘清理</button></article>
+          <article><h3>存储设置</h3><p>查看“系统和保留”、临时文件、应用和回收站。清理前留意“下载”是否被选中，那里可能是个人文件。</p><button class="secondary-button" data-system-action="storage">打开 Windows 存储</button></article>
+          <article><h3>WinSxS 组件仓库</h3><p>文件存在硬链接，目录求和并不等于真实独占空间。先用 DISM 官方分析查看是否建议清理（需要管理员权限）。</p><button id="systemAnalyze" class="secondary-button">只分析组件仓库</button></article>
+          <article><h3>这些文件应保留</h3><p>Installer 用于安装修复；DriverStore 是驱动仓库；pagefile.sys 是虚拟内存；hiberfil.sys 用于休眠和快速启动。不要直接删除，也不自动关闭相关功能。</p></article>
+        </div>
+        <pre id="systemOutput" class="system-output hidden"></pre>
+        <p class="disk-note">系统维护交由 Windows 处理。本程序不会直接删除 WinSxS、Installer、驱动仓库、恢复点，也不会执行 /ResetBase。</p>
+      </div>
+    </main>
+  </div>
+
+  <div class="action-bar hidden" id="actionBar">
+    <div class="selection-summary">
+      <span>已选择 <b id="selectedCount">0</b> 项</span>
+      <strong id="selectedSize">0 B</strong>
+      <small>预计可释放</small>
+    </div>
+    <button class="secondary-button" id="clearSelection">清空选择</button>
+    <button class="secondary-button hidden" id="stopClean">停止清理</button>
+    <button class="clean-button" id="cleanButton">立即清理</button>
+  </div>
+
+  <div class="modal-backdrop hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal">
+      <button class="modal-close" data-close-modal aria-label="关闭">×</button>
+      <div class="modal-icon warning">!</div>
+      <h3 id="confirmTitle">确认永久删除这些缓存？</h3>
+      <p>将删除 <b id="confirmCount">0</b> 个清理项，预计释放 <strong id="confirmSize">0 B</strong>。此操作不能撤销，运行中的软件可能有文件被跳过。</p>
+      <label class="confirm-check"><input type="checkbox" id="understandCheck"><span>我已检查所选项目，确认开始清理</span></label>
+      <div class="modal-actions">
+        <button class="secondary-button" data-close-modal>再看看</button>
+        <button class="danger-button" id="confirmClean" disabled>确认清理</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="modal result-modal">
+      <button class="modal-close" data-close-result aria-label="关闭">×</button>
+      <div class="modal-icon success">✓</div>
+      <h3 id="resultTitle">清理完成</h3>
+      <p id="resultMessage">已释放空间。</p>
+      <div class="result-stats">
+        <div><strong id="cleanedSize">0 B</strong><span>已释放</span></div>
+        <div><strong id="cleanedFiles">0</strong><span>个文件</span></div>
+        <div><strong id="skippedFiles">0</strong><span>已跳过</span></div>
+      </div>
+      <div class="modal-actions"><button class="primary-button" data-close-result>完成</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="uninstallModal" role="dialog" aria-modal="true" aria-labelledby="uninstallTitle">
+    <div class="modal">
+      <button class="modal-close" data-close-uninstall aria-label="关闭">×</button>
+      <div class="modal-icon uninstall">▣</div>
+      <h3 id="uninstallTitle">确认卸载软件？</h3>
+      <p>即将启动 <strong id="uninstallName">这个软件</strong> 自己的卸载程序。请在随后出现的窗口中完成卸载。</p>
+      <div class="uninstall-info"><span id="uninstallPublisher">未知发布者</span><b id="uninstallSize">—</b></div>
+      <div class="modal-actions">
+        <button class="secondary-button" data-close-uninstall>取消</button>
+        <button class="danger-button" id="confirmUninstall">启动卸载</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="app.js"></script>
+  <script src="disk-ui.js"></script>
+</body>
+</html>
