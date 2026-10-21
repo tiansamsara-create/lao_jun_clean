@@ -7,6 +7,7 @@
 ## 主要功能
 
 - 按软件展示扫描结果，支持分类、搜索、展开查看具体清理项。
+- 缓存扫描支持“停止扫描”，等待当前任务退出后恢复按钮；停止不触发清理、不覆盖上次完整结果和选择。取消请求失败或等待超时可重试停止，不影响磁盘/软件扫描。
 - 显示每一项的大小、文件数、风险等级、说明与实际路径。
 - 内置 Windows、Chrome、Edge、Firefox、微信、QQ、Teams、Discord、Slack、钉钉、飞书、Zoom、VS Code、Cursor、npm、pip、NuGet、Yarn、Gradle、Steam、Epic、NVIDIA、AMD、Adobe 等规则。
 - 自动发现其他 Electron/Chromium 软件的通用缓存，默认不勾选。

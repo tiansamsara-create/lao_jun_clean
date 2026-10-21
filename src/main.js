@@ -9,7 +9,8 @@ const { promisify } = require('node:util');
 const execute = promisify(execFile);
 
 let mainWindow;
-let scanToken = null;
+const { createCacheScan } = require('./cache-scan');
+const cacheScan = createCacheScan({ scanAll, getDriveInfo });
 let cleanToken = null;
 let appScanToken = null;
 let installedAppCache = new Map();
@@ -153,26 +154,15 @@ ipcMain.handle('system:info', async () => ({
   computerName: process.env.COMPUTERNAME || '这台电脑'
 }));
 
-ipcMain.handle('scan:start', async (event) => {
-  if (scanToken) scanToken.cancelled = true;
-  const token = { cancelled: false };
-  scanToken = token;
-  try {
-    const items = await scanAll({
-      cancelToken: token,
-      onProgress: (progress) => {
-        if (!event.sender.isDestroyed()) event.sender.send('scan:progress', progress);
-      }
-    });
-    if (token.cancelled) return { cancelled: true, items: [] };
-    return { cancelled: false, items, drive: await getDriveInfo(), scannedAt: new Date().toISOString() };
-  } finally {
-    if (scanToken === token) scanToken = null;
-  }
+ipcMain.handle('scan:start', (event, scanId) => {
+  if (cleanToken) throw new Error('清理正在进行中，请等待清理退出后再扫描');
+  return cacheScan.start(event, scanId);
 });
+ipcMain.handle('scan:cancel', (event, scanId) => cacheScan.cancel(event, scanId));
 
 ipcMain.handle('clean:start', async (event, ids) => {
   if (cleanToken) throw new Error('清理正在进行中');
+  if (cacheScan.busy) throw new Error('缓存扫描尚未退出，请等待扫描退出后再清理');
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200) throw new Error('请选择有效的清理项');
   const uniqueIds = [...new Set(ids.filter((id) => typeof id === 'string'))];
   cleanToken = { cancelled: false };

@@ -299,28 +299,32 @@ function setBusy(busy, mode = 'scan') {
   $('#stopClean').textContent = '停止清理';
   els.clearSelection.disabled = busy;
   state.busy = busy;
-  els.scanButton.disabled = busy;
+  els.scanButton.disabled = busy && mode !== 'scan';
   els.searchInput.disabled = busy;
   els.selectSafe.disabled = busy;
   els.cleanButton.disabled = busy || state.selected.size === 0;
   els.progressWrap.classList.toggle('hidden', !busy);
   if (busy) {
-    els.scanButton.querySelector('span').textContent = mode === 'scan' ? '正在扫描…' : '正在清理…';
+    els.scanButton.querySelector('span').textContent = mode === 'scan' ? '停止扫描' : '正在清理…';
     els.progressBar.style.width = '2%';
   } else {
-    els.scanButton.querySelector('span').textContent = '重新扫描';
+    els.scanButton.querySelector('span').textContent = state.scanned ? '重新扫描' : '开始扫描';
     els.progressWrap.classList.add('hidden');
   }
 }
 
-async function runScan() {
-  if (state.busy) return;
-  setBusy(true, 'scan');
-  els.progressText.textContent = '正在准备扫描…';
-  els.scanHint.textContent = '只读取文件大小，不修改任何内容';
-  try {
-    const result = await window.qingpan.scan();
-    if (result.cancelled) return;
+const cacheScanController = createScanController({
+  api: window.qingpan,
+  onBusy(busy) {
+    setBusy(busy, 'scan');
+    if (busy) {
+      els.progressText.textContent = '正在准备扫描…';
+      els.scanHint.textContent = '只读取文件大小，不修改任何内容';
+    } else {
+      updateSelection();
+    }
+  },
+  onComplete(result) {
     state.items = result.items;
     state.scanned = true;
     state.selected = new Set(result.items.filter((item) => item.detected && item.selected && item.bytes > 0).map((item) => item.id));
@@ -328,17 +332,46 @@ async function runScan() {
     const total = detectedItems().reduce((sum, item) => sum + item.bytes, 0);
     els.heroTitle.textContent = total ? `发现 ${formatBytes(total)} 可清理空间` : 'C 盘现在很干净';
     els.heroSub.textContent = total ? '下面按软件列出了扫描结果。黄色项目不会默认选择，请确认影响后再勾选。' : '没有发现已知的缓存和临时文件。你可以稍后再来扫描。';
-    els.lastScan.textContent = `刚刚扫描`;
+    els.lastScan.textContent = '刚刚扫描';
     els.scanHint.textContent = `已检查 ${result.items.length} 条安全规则`;
     updateDrive(result.drive);
     renderCategories();
     renderResults();
-  } catch (error) {
+  },
+  onCancelled() {
+    els.scanHint.textContent = state.scanned
+      ? '扫描已停止，保留上次完整结果和选择'
+      : '扫描已停止，尚未完成扫描，可重新开始';
+  },
+  onError(error) {
+    els.scanHint.textContent = state.scanned
+      ? '扫描失败，保留上次完整结果和选择，可重新扫描'
+      : '扫描失败，可重新开始';
     showToast(`扫描失败：${error.message}`);
-  } finally {
-    setBusy(false);
-    updateSelection();
+  },
+  onStopping() {
+    els.scanButton.disabled = true;
+    els.scanButton.querySelector('span').textContent = '正在停止…';
+    els.progressText.textContent = '正在停止扫描，等待当前任务退出…';
+    els.scanHint.textContent = '停止不会清理文件，也不会替换上次完整结果';
+  },
+  onCancelError(error) {
+    els.scanButton.disabled = false;
+    els.scanButton.querySelector('span').textContent = '停止扫描';
+    els.progressText.textContent = '扫描尚未退出，可再次点击停止扫描';
+    els.scanHint.textContent = '停止未完成；仍在等待扫描退出，可重试停止';
+    showToast(`停止扫描未完成：${error.message}`);
+  },
+  onProgress({ current, total, app }) {
+    els.progressBar.style.width = `${Math.max(2, Math.round((current / total) * 100))}%`;
+    els.progressText.textContent = `正在检查 ${app} · ${current}/${total}`;
   }
+});
+
+async function runScan() {
+  if (cacheScanController.busy) return cacheScanController.stop();
+  if (state.busy) return;
+  return cacheScanController.start();
 }
 
 async function runClean() {
@@ -377,18 +410,8 @@ async function runClean() {
 }
 
 async function runScanAfterClean() {
-  try {
-    const result = await window.qingpan.scan();
-    if (!result.cancelled) {
-      state.items = result.items;
-      updateDrive(result.drive);
-      renderCategories();
-      renderResults();
-      const left = detectedItems().reduce((sum, item) => sum + item.bytes, 0);
-      els.heroTitle.textContent = left ? `仍有 ${formatBytes(left)} 可清理空间` : '清理完成，C 盘更轻松了';
-      els.lastScan.textContent = '刚刚清理';
-    }
-  } catch { /* the successful clean report remains visible */ }
+  // If reused, go through the same task ownership/cancellation path.
+  return runScan();
 }
 
 function openConfirm() {
@@ -490,10 +513,7 @@ document.querySelectorAll('[data-close-uninstall]').forEach((button) => button.a
   state.uninstallTarget = null;
 }));
 
-window.qingpan.onScanProgress(({ current, total, app }) => {
-  els.progressBar.style.width = `${Math.max(2, Math.round((current / total) * 100))}%`;
-  els.progressText.textContent = `正在检查 ${app} · ${current}/${total}`;
-});
+window.qingpan.onScanProgress((progress) => cacheScanController.progress(progress));
 window.qingpan.onCleanProgress(({ current, total, app, item, path, cleanedFiles = 0, cleanedBytes = 0, skippedFiles = 0 }) => {
   els.progressBar.style.width = `${Math.round((current / total) * 100)}%`;
   els.progressText.textContent = `${app} · ${current}/${total} 项完成`;

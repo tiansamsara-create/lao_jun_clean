@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('qingpan', {
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
-  scan: () => ipcRenderer.invoke('scan:start'),
+  scan: (scanId) => ipcRenderer.invoke('scan:start', scanId),
+  cancelScan: (scanId) => ipcRenderer.invoke('scan:cancel', scanId),
   clean: (ids) => ipcRenderer.invoke('clean:start', ids),
   cancelClean: () => ipcRenderer.invoke('clean:cancel'),
   scanApps: (root) => ipcRenderer.invoke('apps:scan', root),
